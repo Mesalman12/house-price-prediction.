@@ -1,17 +1,3 @@
-"""
-Housing Price Regression
-=========================
-Dataset: California Housing (sklearn.datasets.fetch_california_housing)
-Each row = one census block group in California (1990 census).
-Target: median house value for the block group (in $100,000s).
-
-Selected features (chosen because they plausibly drive price):
-  - MedInc     : median income of households in the block group
-  - AveRooms   : average number of rooms per household
-  - AveBedrms  : average number of bedrooms per household
-  - HouseAge   : median age of houses in the block group
-  - Population : population of the block group (proxy for density/location)
-"""
 
 import numpy as np
 import pandas as pd
@@ -23,36 +9,15 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 
-# ---------------------------------------------------------------
-# 1. Load data
-# ---------------------------------------------------------------
-# NOTE: This sandbox has no internet access, so sklearn's
-# fetch_california_housing() (which downloads from figshare) and the
-# Kaggle API both fail here. To keep the full pipeline runnable, this
-# script SIMULATES a dataset that mirrors the real California Housing
-# data: same 5 features, same realistic value ranges, and price built
-# from those features plus noise (so a linear model gets a genuine,
-# imperfect fit rather than a toy R^2 of 1.0).
-#
-# TO USE REAL DATA instead, on a machine with internet access replace
-# this whole block with:
-#   from sklearn.datasets import fetch_california_housing
-#   data = fetch_california_housing(as_frame=True)
-#   df = data.frame
-#   df["MedHouseVal_USD"] = df["MedHouseVal"] * 100_000
-# and delete the simulation code below.
-
 rng = np.random.default_rng(42)
 n = 5000
 
-MedInc = rng.gamma(shape=5.0, scale=0.75, size=n).clip(0.5, 15)          # $10,000s
-HouseAge = rng.uniform(1, 52, size=n)                                     # years
+MedInc = rng.gamma(shape=5.0, scale=0.75, size=n).clip(0.5, 15)
+HouseAge = rng.uniform(1, 52, size=n)
 AveRooms = rng.normal(5.4, 1.1, size=n).clip(2, 12)
 AveBedrms = (AveRooms * rng.normal(0.19, 0.03, size=n)).clip(0.5, 3)
 Population = rng.gamma(shape=4.0, scale=350, size=n).clip(50, 15000)
 
-# Realistic price relationship: income dominates, more rooms/newer homes
-# raise price, higher bedroom ratio (cramped layout) and density lower it.
 noise = rng.normal(0, 45_000, size=n)
 MedHouseVal_USD = (
     45_000
@@ -73,16 +38,10 @@ df = pd.DataFrame({
     "MedHouseVal_USD": MedHouseVal_USD,
 })
 
-# ---------------------------------------------------------------
-# 2. Select 5 features
-# ---------------------------------------------------------------
 features = ["MedInc", "AveRooms", "AveBedrms", "HouseAge", "Population"]
 X = df[features]
 y = df["MedHouseVal_USD"]
 
-# ---------------------------------------------------------------
-# 3. Train/test split + Linear Regression
-# ---------------------------------------------------------------
 X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
@@ -91,9 +50,6 @@ model = LinearRegression()
 model.fit(X_train, y_train)
 y_pred = model.predict(X_test)
 
-# ---------------------------------------------------------------
-# 4. Evaluate: RMSE + R²
-# ---------------------------------------------------------------
 rmse = np.sqrt(mean_squared_error(y_test, y_pred))
 r2 = r2_score(y_test, y_pred)
 
@@ -106,9 +62,6 @@ for f, c in zip(features, model.coef_):
     print(f"{f:12s}: {c:,.2f}")
 print(f"Intercept   : {model.intercept_:,.2f}")
 
-# ---------------------------------------------------------------
-# 5. Plot predicted vs actual
-# ---------------------------------------------------------------
 plt.figure(figsize=(7, 7))
 plt.scatter(y_test, y_pred, alpha=0.3, s=15, color="#2563eb")
 lims = [0, max(y_test.max(), y_pred.max())]
@@ -118,5 +71,5 @@ plt.ylabel("Predicted House Value ($)")
 plt.title(f"Predicted vs. Actual House Prices\nR² = {r2:.3f}   RMSE = ${rmse:,.0f}")
 plt.legend()
 plt.tight_layout()
-plt.savefig("/mnt/user-data/outputs/predicted_vs_actual.png", dpi=150)
+plt.savefig("predicted_vs_actual.png", dpi=150)
 print("\nSaved plot to predicted_vs_actual.png")
